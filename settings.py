@@ -11,8 +11,8 @@ DATEN_DIR = os.path.join(APP_DIR, "daten")
 TYPEN = {
     "helme": ("Helme", 100, 60),
     "baelle": ("Tennisbälle", 70, 40),
-    "ski": ("Ski", 100, 60),
-    "snowboard": ("Snowboards", 100, 60),
+    "ski": ("Ski", 70, 90),
+    "snowboard": ("Snowboards", 70, 90),
 }
 DEFAULTS = {"rand": 10, "abstand": 0, **{k: {"breite": b, "hoehe": h} for k, (_, b, h) in TYPEN.items()}}
 
