@@ -1,4 +1,7 @@
-"""Tab Helme. Das Layout steckt nur in draw() - hier spaeter anpassen."""
+"""Tab Helme. Das Layout steckt nur in draw() - hier spaeter anpassen.
+
+Layout: links grosses Logo (ohne Logo die Marke als Text), rechts untereinander
+Modell, Groessenzeilen ("L / 59-62 cm") und Preis."""
 from reportlab.lib.units import mm
 
 import sheet
@@ -17,41 +20,45 @@ class HelmeTab(SchilderTab):
 
     @staticmethod
     def draw(c, w, h, it):
-        pad = 4 * mm
-        breite = w - 2 * pad
-        logo_w = 0.32 * w if it.get("logo") else 0
-        sheet.draw_logo(c, it.get("logo"), w - pad - logo_w, h - pad - 0.3 * h, logo_w, 0.3 * h)
-        text_b = breite - logo_w - (3 * mm if logo_w else 0)
-        marke = it.get("marke", "")
-        s = sheet.fit_font_size(marke, "Helvetica-Bold", 16, text_b)
-        c.setFont("Helvetica-Bold", s)
-        c.drawString(pad, h - pad - s * 0.8, marke)
+        pad = 5 * mm
+        links_b = 0.42 * w - pad
+        x0 = 0.48 * w  # linke Kante der Textspalte
+        text_b = w - pad - x0
+
+        # Links: Logo mittig-links, sonst Marke als Text
+        if it.get("logo"):
+            sheet.draw_logo(c, it["logo"], pad, 0.2 * h, links_b, 0.6 * h, anchor="w")
+        elif it.get("marke"):
+            marke = it["marke"]
+            s = sheet.fit_font_size(marke, "Helvetica-Bold", 20, links_b)
+            c.setFont("Helvetica-Bold", s)
+            c.drawString(pad, h / 2 - s * 0.35, marke)
+
+        # Rechts: Modell oben
         modell = it.get("modell", "")
-        s2 = sheet.fit_font_size(modell, "Helvetica", 12, text_b)
-        c.setFont("Helvetica", s2)
-        c.drawString(pad, h - pad - s * 0.8 - s2 * 1.3, modell)
+        sm = sheet.fit_font_size(modell, "Helvetica-Bold", 15, text_b)
+        c.setFont("Helvetica-Bold", sm)
+        c.drawString(x0, h * 0.72, modell)
 
-        # Zwei Groessenzeilen unten links, z. B. "S-M  51–55 cm"
-        zeilen = [(it.get("groesse1", ""), it.get("mass1", "")), (it.get("groesse2", ""), it.get("mass2", ""))]
-        spalte = max(c.stringWidth(g, "Helvetica-Bold", 11) for g, _ in zeilen) + 8  # Maße bündig untereinander
-        y = pad
-        for g, m in reversed(zeilen):
-            if not (g or m):
+        # Groessenzeilen mittig, "L / 59-62 cm"
+        y = h * 0.52
+        for g, m in ((it.get("groesse1", ""), it.get("mass1", "")), (it.get("groesse2", ""), it.get("mass2", ""))):
+            zeile = " / ".join(t for t in (g, m) if t)
+            if not zeile:
                 continue
-            c.setFont("Helvetica-Bold", 11)
-            c.drawString(pad, y, g)
-            c.setFont("Helvetica", 10)
-            c.drawString(pad + spalte, y, m)
-            y += 15
+            c.setFont("Helvetica-Bold", sheet.fit_font_size(zeile, "Helvetica-Bold", 10, text_b))
+            c.drawString(x0, y, zeile)
+            y -= 14
 
+        # Preis unten, Statt-Preis klein darueber durchgestrichen
         preis = sheet.euro(it.get("preis", ""))
-        sp = sheet.fit_font_size(preis, "Helvetica-Bold", 30, 0.55 * breite)
+        sp = sheet.fit_font_size(preis, "Helvetica-Bold", 20, text_b)
         c.setFont("Helvetica-Bold", sp)
-        c.drawRightString(w - pad, pad, preis)
+        c.drawString(x0, h * 0.18, preis)
         if it.get("statt"):
             statt = "statt " + sheet.euro(it["statt"])
-            c.setFont("Helvetica", 10)
-            c.drawRightString(w - pad, pad + sp + 2, statt)
-            breite_statt = c.stringWidth(statt, "Helvetica", 10)
-            c.setLineWidth(0.7)
-            c.line(w - pad - breite_statt, pad + sp + 5, w - pad, pad + sp + 5)
+            c.setFont("Helvetica", 9)
+            c.drawString(x0, h * 0.18 + sp + 3, statt)
+            c.setLineWidth(0.6)
+            yl = h * 0.18 + sp + 3 + 3
+            c.line(x0, yl, x0 + c.stringWidth(statt, "Helvetica", 9), yl)

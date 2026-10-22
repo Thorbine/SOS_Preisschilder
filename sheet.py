@@ -76,14 +76,14 @@ def fit_font_size(text, font, max_size, max_breite, min_size=5):
     return size
 
 
-def draw_logo(c, name, x, y, w, h):
-    """Logo (Datei aus daten/logos) proportional in die Box x,y,w,h, rechtsbuendig/oben.
+def draw_logo(c, name, x, y, w, h, anchor="ne"):
+    """Logo (Datei aus daten/logos) proportional in die Box x,y,w,h (Standard: rechtsbuendig/oben).
     Fehlende oder defekte Datei: Schild wird ohne Logo gedruckt."""
     if not name:
         return
     try:
         c.drawImage(os.path.join(settings.LOGO_DIR, name), x, y, w, h,
-                    preserveAspectRatio=True, mask="auto", anchor="ne")
+                    preserveAspectRatio=True, mask="auto", anchor=anchor)
     except Exception:
         pass
 
