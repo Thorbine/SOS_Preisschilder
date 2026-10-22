@@ -13,6 +13,8 @@ from tkinter import ttk, messagebox
 import settings
 from tab_helme import HelmeTab
 from tab_baelle import BaelleTab
+from tab_ski import SkiTab
+from tab_snowboard import SnowboardTab
 from tab_einstellungen import EinstellungenTab
 
 
@@ -27,6 +29,8 @@ class App(tk.Tk):
         nb.pack(fill="both", expand=True, padx=8, pady=8)
         nb.add(HelmeTab(nb), text="Helme")
         nb.add(BaelleTab(nb), text="Tennisbälle")
+        nb.add(SkiTab(nb), text="Ski")
+        nb.add(SnowboardTab(nb), text="Snowboard")
         nb.add(EinstellungenTab(nb), text="Einstellungen")
 
     def _on_error(self, exc, val, tb):
