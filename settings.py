@@ -15,6 +15,17 @@ TYPEN = {
 DEFAULTS = {"rand": 10, "abstand": 0, **{k: {"breite": b, "hoehe": h} for k, (_, b, h) in TYPEN.items()}}
 
 
+LOGO_DIR = os.path.join(DATEN_DIR, "logos")
+
+
+def logos():
+    """Dateinamen der gespeicherten Logos (sortiert)."""
+    try:
+        return sorted(f for f in os.listdir(LOGO_DIR) if f.lower().endswith((".png", ".jpg", ".jpeg")))
+    except OSError:
+        return []
+
+
 def _pfad(name):
     return os.path.join(DATEN_DIR, name + ".json")
 

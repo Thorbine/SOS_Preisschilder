@@ -14,8 +14,10 @@ class BaelleTab(SchilderTab):
     def draw(c, w, h, it):
         pad = 3 * mm
         breite = w - 2 * pad
+        logo_w = 0.3 * w if it.get("logo") else 0
+        sheet.draw_logo(c, it.get("logo"), w - pad - logo_w, h - pad - 0.4 * h, logo_w, 0.4 * h)
         name = it.get("name", "")
-        s = sheet.fit_font_size(name, "Helvetica-Bold", 14, breite)
+        s = sheet.fit_font_size(name, "Helvetica-Bold", 14, breite - logo_w - (2 * mm if logo_w else 0))
         c.setFont("Helvetica-Bold", s)
         c.drawString(pad, h - pad - s * 0.8, name)
         c.setFont("Helvetica", 9)

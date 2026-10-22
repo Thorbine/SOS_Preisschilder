@@ -3,6 +3,9 @@
 Jedes Schild bekommt einen Rahmen - der gilt beim Ausschneiden als Schnittlinie.
 Das Layout eines Schildes steckt allein in der Funktion draw(c, w, h, item),
 die der jeweilige Tab liefert (Koordinaten in Punkt, Ursprung links unten)."""
+import os
+
+import settings
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
@@ -71,6 +74,18 @@ def fit_font_size(text, font, max_size, max_breite, min_size=5):
     while size > min_size and stringWidth(text, font, size) > max_breite:
         size -= 0.5
     return size
+
+
+def draw_logo(c, name, x, y, w, h):
+    """Logo (Datei aus daten/logos) proportional in die Box x,y,w,h, rechtsbuendig/oben.
+    Fehlende oder defekte Datei: Schild wird ohne Logo gedruckt."""
+    if not name:
+        return
+    try:
+        c.drawImage(os.path.join(settings.LOGO_DIR, name), x, y, w, h,
+                    preserveAspectRatio=True, mask="auto", anchor="ne")
+    except Exception:
+        pass
 
 
 def euro(text):

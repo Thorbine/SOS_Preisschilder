@@ -20,8 +20,8 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("SOS Sport – Preisschilder")
-        self.geometry("980x720")
-        self.minsize(820, 600)
+        self.geometry(f"{min(1280, self.winfo_screenwidth() - 40)}x{min(820, self.winfo_screenheight() - 80)}")
+        self.minsize(1000, 640)
         self.report_callback_exception = self._on_error
         nb = ttk.Notebook(self)
         nb.pack(fill="both", expand=True, padx=8, pady=8)
