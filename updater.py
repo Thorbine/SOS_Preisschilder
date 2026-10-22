@@ -8,6 +8,7 @@ import io
 import json
 import os
 import shutil
+import ssl
 import sys
 import urllib.request
 import zipfile
@@ -34,9 +35,18 @@ def current_version():
         return "dev"
 
 
+def _ssl_context():
+    """Mac-Python von python.org bringt keine Zertifikate mit -> certifi nutzen."""
+    try:
+        import certifi
+        return ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        return ssl.create_default_context()
+
+
 def _get(url):
     req = urllib.request.Request(url, headers={"User-Agent": "SOS-Preisschilder-Update"})
-    with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
+    with urllib.request.urlopen(req, timeout=TIMEOUT, context=_ssl_context()) as resp:
         return resp.read()
 
 
