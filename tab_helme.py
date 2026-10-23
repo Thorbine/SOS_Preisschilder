@@ -20,7 +20,7 @@ class HelmeTab(SchilderTab):
     FIELDS = [("modell", "Modell"),
               ("groesse1", "Größe", GROESSEN), ("mass1", "Maße (z. B. 51–55 cm)"),
               ("preis", "Preis (€)"), ("statt", "Statt-Preis (€, optional)")]
-    LISTE = ("logo", "modell", "groesse1", "preis")
+    LISTE = ("logo", "modell", "groesse1", "mass1", "preis")
     KOPIE_LEER = ("groesse1", "mass1")  # Kopie = gleicher Helm in anderer Groesse
 
     def _extra(self, p):
@@ -37,9 +37,11 @@ class HelmeTab(SchilderTab):
             messagebox.showerror("Import", f"Die Datei konnte nicht gelesen werden:\n{e}")
             return
         dazu = csv_import.zusammenfuehren(self.items, neu)
+        for it in self.items:
+            it.setdefault("_blatt", 0)
         self._speichern()
         ohne_logo = sorted({it["modell"] for it in neu if not it["logo"]})
-        text = f"{dazu} neue Helme importiert, {len(neu) - dazu} waren schon in der Liste.\n\nDie neuen sind noch nicht angehakt und haben keine Größe."
+        text = f"{dazu} neue Helme importiert, {len(neu) - dazu} waren schon in der Liste.\n\nDie neuen haben noch keine Größe und sind nicht auf dem Blatt."
         if ohne_logo:
             text += "\n\nOhne Logo (keine passende Datei im Ordner): " + ", ".join(ohne_logo)
         messagebox.showinfo("Import", text)

@@ -44,9 +44,10 @@ class SchilderTab(ttk.Frame):
     def __init__(self, master):
         super().__init__(master, padding=10)
         self.items = settings.load_list(self.TYP)
+        for it in self.items:
+            it["_blatt"] = 0  # Stueckzahl auf dem Blatt: nur zur Laufzeit, wird nicht gespeichert
         self.keys = [f[0] for f in self.FIELDS] + ["logo"]
         self.vars = {k: tk.StringVar() for k in self.keys}
-        self.anzahl = tk.IntVar(value=1)
         self.info = tk.StringVar()
         self.seite = 0
         self._job = None
@@ -79,8 +80,6 @@ class SchilderTab(ttk.Frame):
                 w = ttk.Entry(form, textvariable=self.vars[f[0]], width=24)
             w.grid(row=i, column=1, sticky="ew", pady=2)
         n = len(self.FIELDS)
-        ttk.Label(form, text="Anzahl").grid(row=n, column=0, sticky="w", pady=2)
-        ttk.Spinbox(form, from_=1, to=500, textvariable=self.anzahl, width=6).grid(row=n, column=1, sticky="w", pady=2)
         self._logo_auswahl(p)
 
         kn = ttk.Frame(p)
@@ -91,11 +90,10 @@ class SchilderTab(ttk.Frame):
         ttk.Button(kn, text="Löschen", command=self.loeschen).pack(side="left", padx=4)
         ttk.Button(kn, text="Alle löschen", command=self.leeren).pack(side="left")
 
-        # Zusammenstellen: Haken = kommt aufs Blatt, Reihenfolge = Reihenfolge auf dem Blatt
+        # Zusammenstellen: "+" / "-" in der Zeile legt Schilder aufs Blatt, die Reihenfolge der Liste ist die Blattreihenfolge
         zs = ttk.Frame(p)
         zs.pack(fill="x", pady=(0, 4))
-        ttk.Button(zs, text="Alle anhaken", command=lambda: self.alle_haken(True)).pack(side="left")
-        ttk.Button(zs, text="Keine", command=lambda: self.alle_haken(False)).pack(side="left", padx=4)
+        ttk.Button(zs, text="Blatt leeren", command=self.blatt_leeren).pack(side="left", padx=(0, 4))
         ttk.Button(zs, text="▲", width=3, command=lambda: self.verschieben(-1)).pack(side="left")
         ttk.Button(zs, text="▼", width=3, command=lambda: self.verschieben(1)).pack(side="left", padx=(2, 4))
         sort = ttk.Menubutton(zs, text="Sortieren ▾")
@@ -107,20 +105,20 @@ class SchilderTab(ttk.Frame):
 
         self._extra(p)
 
-        spalten = ["druck"] + list(self.LISTE or [f[0] for f in self.FIELDS]) + ["anzahl"]
-        beschr = {**{f[0]: f[1] for f in self.FIELDS}, "logo": "Logo", "druck": "Druck"}
+        spalten = list(self.LISTE or [f[0] for f in self.FIELDS]) + ["minus", "blatt", "plus"]
+        beschr = {**{f[0]: f[1].split(" (")[0] for f in self.FIELDS}, "logo": "Logo", "minus": "", "blatt": "Blatt", "plus": ""}
         self.tree = ttk.Treeview(p, columns=spalten, show="headings", height=4, selectmode="browse")
-        for k in spalten[1:-1]:
+        for k in spalten[:-3]:
             self.tree.heading(k, text=beschr[k])
             self.tree.column(k, width=110, anchor="w")
-        self.tree.heading("druck", text="Druck")
-        self.tree.column("druck", width=50, anchor="center", stretch=False)
-        self.tree.heading("anzahl", text="Anzahl")
-        self.tree.column("anzahl", width=55, anchor="center")
+        for k, breite in (("minus", 34), ("blatt", 50), ("plus", 34)):
+            self.tree.heading(k, text=beschr[k])
+            self.tree.column(k, width=breite, anchor="center", stretch=False)
+        self.tree.tag_configure("aufblatt", background="#dff0d8")
         self.tree.bind("<Button-1>", self._klick)
         self.tree.pack(fill="both", expand=True)
         self.tree.bind("<<TreeviewSelect>>", self.auswahl_laden)
-        self.spalten = spalten[1:-1]
+        self.spalten = spalten[:-3]
 
         unten = ttk.Frame(p)
         unten.pack(fill="x", pady=(8, 0))
@@ -136,7 +134,7 @@ class SchilderTab(ttk.Frame):
         if i is None:
             messagebox.showinfo("Kopieren", "Bitte erst ein Schild in der Liste auswählen.")
             return
-        kopie = {**self.items[i], **{k: "" for k in self.KOPIE_LEER}}
+        kopie = {**self.items[i], **{k: "" for k in self.KOPIE_LEER}, "_blatt": 0}
         self.items.insert(i + 1, kopie)
         self._speichern()
         self.tree.selection_set(str(i + 1))
@@ -250,40 +248,46 @@ class SchilderTab(ttk.Frame):
         self.logos_laden()
         self.tree.delete(*self.tree.get_children())
         for i, it in enumerate(self.items):
-            self.tree.insert("", "end", iid=str(i),
-                             values=[self._haken(it)] + [self._zelle(it, k) for k in self.spalten] + [it["anzahl"]])
+            self.tree.insert("", "end", iid=str(i), tags=self._tags(it),
+                             values=[self._zelle(it, k) for k in self.spalten] + ["−", it["_blatt"] or "", "+"])
         self._info_und_vorschau()
 
     def _info_und_vorschau(self):
-        gesamt = sum(it["anzahl"] for it in self.items if it.get("druck", True))
+        gesamt = sum(it["_blatt"] for it in self.items)
         w, h, rand, abstand = self.masse()
         try:
             pb = sheet.pro_blatt(w, h, rand, abstand)
-            self.info.set(f"{w:g} × {h:g} mm · {pb} pro Blatt\n{gesamt} angehakte Schilder = {-(-gesamt // pb)} Blatt")
+            self.info.set(f"{w:g} × {h:g} mm · {pb} pro Blatt\n{gesamt} Schilder auf dem Blatt = {-(-gesamt // pb)} Blatt")
         except ValueError as e:
             self.info.set(str(e))
         self._vorschau_planen()
 
     @staticmethod
-    def _haken(it):
-        return "☑" if it.get("druck", True) else "☐"
+    def _tags(it):
+        return ("aufblatt",) if it["_blatt"] else ()
 
     def _klick(self, e):
-        """Klick in die Spalte "Druck" schaltet den Haken um."""
-        if self.tree.identify_region(e.x, e.y) == "cell" and self.tree.identify_column(e.x) == "#1":
-            zeile = self.tree.identify_row(e.y)
-            if zeile:
-                it = self.items[int(zeile)]
-                it["druck"] = not it.get("druck", True)
-                self.tree.set(zeile, "druck", self._haken(it))
-                settings.save_list(self.TYP, self.items)
-                self._info_und_vorschau()
-                return "break"
+        """Klick auf "+" oder "−" in der Zeile legt ein Schild aufs Blatt bzw. nimmt eines weg."""
+        if self.tree.identify_region(e.x, e.y) != "cell":
+            return None
+        spalte = self.tree["columns"][int(self.tree.identify_column(e.x)[1:]) - 1]
+        zeile = self.tree.identify_row(e.y)
+        if zeile and spalte in ("plus", "minus"):
+            self.blatt_aendern(int(zeile), 1 if spalte == "plus" else -1)
+            return "break"
+        return None
 
-    def alle_haken(self, an):
+    def blatt_aendern(self, i, d):
+        it = self.items[i]
+        it["_blatt"] = max(0, it["_blatt"] + d)
+        self.tree.item(str(i), tags=self._tags(it))
+        self.tree.set(str(i), "blatt", it["_blatt"] or "")
+        self._info_und_vorschau()
+
+    def blatt_leeren(self):
         for it in self.items:
-            it["druck"] = an
-        self._speichern()
+            it["_blatt"] = 0
+        self.aktualisieren()
 
     def verschieben(self, d):
         i = self._auswahl()
@@ -312,27 +316,23 @@ class SchilderTab(ttk.Frame):
         v = it.get(k, "")
         return os.path.splitext(os.path.basename(v))[0] if k == "logo" else v
 
-    def _form_item(self, anzahl=1):
-        item = {k: self.vars[k].get().strip() for k in self.keys}
-        item["anzahl"] = anzahl
-        return item
+    def _form_item(self):
+        return {k: self.vars[k].get().strip() for k in self.keys}
 
     def _eingabe(self):
-        try:
-            anzahl = int(self.anzahl.get())
-        except (tk.TclError, ValueError):
-            anzahl = 0
-        if anzahl < 1:
-            messagebox.showwarning("Anzahl", "Die Anzahl muss mindestens 1 sein.")
-            return None
-        item = self._form_item(anzahl)
-        if not any(v for k, v in item.items() if k != "anzahl"):
+        item = self._form_item()
+        if not any(item.values()):
             messagebox.showwarning("Schild", "Bitte mindestens ein Feld ausfüllen.")
             return None
         return item
 
+    def _sichern(self):
+        """Datenbank speichern - ohne Laufzeitfelder (_blatt) und alte Felder (anzahl, druck)."""
+        settings.save_list(self.TYP, [{k: v for k, v in it.items() if not k.startswith("_") and k not in ("anzahl", "druck")}
+                                      for it in self.items])
+
     def _speichern(self):
-        settings.save_list(self.TYP, self.items)
+        self._sichern()
         self.aktualisieren()
 
     def _auswahl(self):
@@ -357,7 +357,7 @@ class SchilderTab(ttk.Frame):
     def hinzufuegen(self):
         item = self._eingabe()
         if item:
-            item["druck"] = True
+            item["_blatt"] = 0
             self.items.append(item)
             self._speichern()
 
@@ -368,7 +368,7 @@ class SchilderTab(ttk.Frame):
             return
         item = self._eingabe()
         if item:
-            item["druck"] = self.items[i].get("druck", True)
+            item["_blatt"] = self.items[i]["_blatt"]
             self.items[i] = item
             self._speichern()
             self.tree.selection_set(str(i))
@@ -390,12 +390,11 @@ class SchilderTab(ttk.Frame):
             return
         for k in self.keys:
             self.vars[k].set(self.items[i].get(k, ""))
-        self.anzahl.set(self.items[i]["anzahl"])
 
     # --- Vorschau + Druck ---
     def _bogen(self):
         """Schilder fuer den Bogen: die angehakten der Liste, oder (leere Liste) das gerade eingetippte Schild."""
-        alle = [it for it in self.items if it.get("druck", True) for _ in range(it["anzahl"])]
+        alle = [it for it in self.items for _ in range(it["_blatt"])]
         if not self.items and any(self.vars[k].get().strip() for k in self.keys):
             alle = [self._form_item()]
         return alle
@@ -421,7 +420,7 @@ class SchilderTab(ttk.Frame):
         alle = self._bogen()
         self.seiten_text.set("")
         if not alle:
-            self._text("Keine Schilder angehakt." if self.items else
+            self._text("Noch nichts auf dem Blatt: in der Liste auf „+“ klicken." if self.items else
                        "Noch keine Schilder. Felder ausfüllen, dann erscheint hier die Vorschau.")
             return
         w, h, rand, abstand = self.masse()
@@ -443,7 +442,7 @@ class SchilderTab(ttk.Frame):
     def drucken(self):
         alle = self._bogen()
         if not alle:
-            messagebox.showinfo("Drucken", "Keine Schilder angehakt." if self.items else "Die Liste ist leer.")
+            messagebox.showinfo("Drucken", "Noch nichts auf dem Blatt: in der Liste auf „+“ klicken." if self.items else "Die Liste ist leer.")
             return
         w, h, rand, abstand = self.masse()
         pfad = os.path.join(tempfile.gettempdir(), f"preisschilder_{self.TYP}.pdf")

@@ -78,7 +78,7 @@ def lese_helme(pfad, logos):
         if rvk and all(rvk):  # alle Farben reduziert -> Preis reduziert, alter Preis als Statt-Preis
             preis, statt = min(rvk, key=lambda p: float(p.replace(",", "."))), preis
         items.append({"logo": logo_fuer(hersteller, logos), "modell": schoener_name(neu[kopf["H.-Art.-Nr."]]),
-                      "groesse1": "", "mass1": "", "preis": preis, "statt": statt, "anzahl": 1, "druck": False})
+                      "groesse1": "", "mass1": "", "preis": preis, "statt": statt})
     return items
 
 
