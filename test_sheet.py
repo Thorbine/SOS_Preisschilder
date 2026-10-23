@@ -40,7 +40,7 @@ def test_csv_import():
     import csv_import
     kopf = "Art.-Nr.;Herst.kurz;Bez.;H.-Art.-Nr.;Orig. Farbe;Saison;SVK-P;RVK-P"
     zeilen = ["1;SALOMO;L1;DRIVER PRIME;black;H/W 2025;360,00;", "2;SALOMO;L1;Driver Prime;white;H/W 2026;380,00;",
-              "3;POC;P1;Obex MIPS;black;H/W 2026;210,00;149,00", "4;POC;P1;Obex MIPS;grey;H/W 2026;210,00;149,00"]
+              "3;POC;P1;Obex MIPS;black;H/W 2026;210,00;149,00", "4;POC;P1;Obex MIPS;grey;H/W 2026;210,00;149,00", "5;SOSSPO;;RTL Helm;;;20,00;"]
     with tempfile.TemporaryDirectory() as d:
         pfad = os.path.join(d, "h.csv")
         with open(pfad, "w", encoding="cp1252") as f:

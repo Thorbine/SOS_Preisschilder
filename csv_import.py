@@ -7,6 +7,7 @@ import csv
 import os
 import re
 
+IGNORIERT = {"SOSSPO"}  # eigene Mietartikel (RTL Helm), brauchen kein Schild
 GROSS_BLEIBT = {"MIPS", "QV", "LT", "GT", "HD", "RTL", "SL", "BC", "Q", "XL", "XS", "LED", "MOD"}
 
 
@@ -67,7 +68,7 @@ def lese_helme(pfad, logos):
         if len(z) <= max(kopf["Herst.kurz"], kopf["H.-Art.-Nr."], kopf["SVK-P"]):
             continue
         hersteller, modell = z[kopf["Herst.kurz"]].strip(), z[kopf["H.-Art.-Nr."]].strip()
-        if hersteller and modell:
+        if hersteller and modell and hersteller.upper() not in IGNORIERT:
             gruppen.setdefault((hersteller, re.sub(r"\s+", "", modell).lower()), []).append(z)
     items = []
     for (hersteller, _), zs in gruppen.items():
