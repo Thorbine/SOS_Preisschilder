@@ -2,12 +2,17 @@
 
 Layout: links grosses Logo (die Marke steht im Logo), rechts untereinander
 Modell, Groesse ("L / 59-62 cm") und Preis."""
+import tkinter as tk
+from tkinter import filedialog, messagebox, ttk
+
 from reportlab.lib.units import mm
 
+import csv_import
+import settings
 import sheet
 from tab_base import SchilderTab
 
-GROESSEN = ["S-M", "M-L", "L-XL"]  # Vorschlaege, beliebiger Text bleibt moeglich
+GROESSEN = ["XS-S", "S-M", "M-L", "L-XL", "XL-XXL"]  # Vorschlaege, beliebiger Text bleibt moeglich
 
 
 class HelmeTab(SchilderTab):
@@ -16,6 +21,28 @@ class HelmeTab(SchilderTab):
               ("groesse1", "Größe", GROESSEN), ("mass1", "Maße (z. B. 51–55 cm)"),
               ("preis", "Preis (€)"), ("statt", "Statt-Preis (€, optional)")]
     LISTE = ("logo", "modell", "groesse1", "preis")
+    KOPIE_LEER = ("groesse1", "mass1")  # Kopie = gleicher Helm in anderer Groesse
+
+    def _extra(self, p):
+        ttk.Button(p, text="Helme aus CSV importieren…", command=self.csv_importieren).pack(anchor="w", pady=(0, 4))
+
+    def csv_importieren(self):
+        """Liest die Helm-CSV: je Hersteller und Modell ein Schild (ohne Haken), schon vorhandene bleiben unberuehrt."""
+        pfad = filedialog.askopenfilename(title="Helm-CSV wählen", filetypes=[("CSV", "*.csv"), ("Alle Dateien", "*.*")])
+        if not pfad:
+            return
+        try:
+            neu = csv_import.lese_helme(pfad, settings.logos(self.TYP))
+        except (OSError, ValueError) as e:
+            messagebox.showerror("Import", f"Die Datei konnte nicht gelesen werden:\n{e}")
+            return
+        dazu = csv_import.zusammenfuehren(self.items, neu)
+        self._speichern()
+        ohne_logo = sorted({it["modell"] for it in neu if not it["logo"]})
+        text = f"{dazu} neue Helme importiert, {len(neu) - dazu} waren schon in der Liste.\n\nDie neuen sind noch nicht angehakt und haben keine Größe."
+        if ohne_logo:
+            text += "\n\nOhne Logo (keine passende Datei im Ordner): " + ", ".join(ohne_logo)
+        messagebox.showinfo("Import", text)
 
     @staticmethod
     def draw(c, w, h, it):

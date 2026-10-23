@@ -16,6 +16,9 @@ Logos (PNG/JPG) in den Ordner `daten/logos/<Produkt>` legen, z. B. `daten/logos/
 ## Schilder zusammenstellen
 Alle Schilder bleiben pro Reiter gespeichert. In der Spalte „Druck“ per Klick ein Häkchen setzen: Nur angehakte Schilder kommen aufs Blatt (so oft wie bei „Anzahl“). Die Reihenfolge in der Liste ist die Reihenfolge auf dem Blatt: mit ▲ ▼ verschieben oder über „Sortieren“ ordnen. Die Vorschau rechts zeigt sofort das Blatt.
 
+## Helme aus der CSV importieren
+Reiter Helme → „Helme aus CSV importieren…“ → `Helme.csv` wählen. Je Hersteller und Modell entsteht ein Schild (Farben fallen weg) mit Logo, Modell und Preis. Die neuen Schilder sind nicht angehakt und haben keine Größe. Größe und Maße ergänzen, für weitere Größen den Knopf „Kopieren“ nutzen. Ein erneuter Import legt nur neue Modelle an.
+
 ## Drucken
 „Drucken (PDF)“ erzeugt ein A4-PDF und öffnet es. Dort drucken mit **100 % / „Tatsächliche Größe“** (nicht „An Seite anpassen“), sonst stimmen die Maße nicht.
 

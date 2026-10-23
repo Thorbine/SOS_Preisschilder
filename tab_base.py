@@ -39,6 +39,7 @@ class SchilderTab(ttk.Frame):
     TYP = ""
     FIELDS = []  # (key, Beschriftung) oder (key, Beschriftung, [Vorschlaege]) -> frei editierbare Auswahl
     LISTE = ()   # Felder, die in der Liste stehen (leer = alle)
+    KOPIE_LEER = ()  # Felder, die beim "Kopieren" geleert werden (z. B. die Groesse)
 
     def __init__(self, master):
         super().__init__(master, padding=10)
@@ -85,8 +86,9 @@ class SchilderTab(ttk.Frame):
         kn.pack(fill="x", pady=8)
         ttk.Button(kn, text="Hinzufügen", command=self.hinzufuegen).pack(side="left")
         ttk.Button(kn, text="Ändern", command=self.aendern).pack(side="left", padx=4)
-        ttk.Button(kn, text="Löschen", command=self.loeschen).pack(side="left")
-        ttk.Button(kn, text="Alle löschen", command=self.leeren).pack(side="left", padx=4)
+        ttk.Button(kn, text="Kopieren", command=self.kopieren).pack(side="left")
+        ttk.Button(kn, text="Löschen", command=self.loeschen).pack(side="left", padx=4)
+        ttk.Button(kn, text="Alle löschen", command=self.leeren).pack(side="left")
 
         # Zusammenstellen: Haken = kommt aufs Blatt, Reihenfolge = Reihenfolge auf dem Blatt
         zs = ttk.Frame(p)
@@ -101,6 +103,8 @@ class SchilderTab(ttk.Frame):
             menue.add_command(label=text, command=lambda k=key: self.sortieren(k))
         sort["menu"] = menue
         sort.pack(side="left")
+
+        self._extra(p)
 
         spalten = ["druck"] + list(self.LISTE or [f[0] for f in self.FIELDS]) + ["anzahl"]
         beschr = {**{f[0]: f[1] for f in self.FIELDS}, "logo": "Logo", "druck": "Druck"}
@@ -121,6 +125,21 @@ class SchilderTab(ttk.Frame):
         unten.pack(fill="x", pady=(8, 0))
         ttk.Label(unten, textvariable=self.info, wraplength=360, justify="left").pack(side="left")
         ttk.Button(unten, text="Drucken (PDF)", command=self.drucken).pack(side="right")
+
+    def _extra(self, p):
+        """Platz fuer zusaetzliche Knoepfe eines Reiters (z. B. CSV-Import bei den Helmen)."""
+
+    def kopieren(self):
+        """Dupliziert das ausgewaehlte Schild direkt darunter (z. B. fuer eine weitere Groesse)."""
+        i = self._auswahl()
+        if i is None:
+            messagebox.showinfo("Kopieren", "Bitte erst ein Schild in der Liste auswählen.")
+            return
+        kopie = {**self.items[i], **{k: "" for k in self.KOPIE_LEER}}
+        self.items.insert(i + 1, kopie)
+        self._speichern()
+        self.tree.selection_set(str(i + 1))
+        self.tree.see(str(i + 1))
 
     # --- Logo-Auswahl: Kacheln statt Dateidialog ---
     def _logo_auswahl(self, p):

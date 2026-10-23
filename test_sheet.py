@@ -36,6 +36,21 @@ def test_logos():
             settings.LOGO_DIR = alt
 
 
+def test_csv_import():
+    import csv_import
+    kopf = "Art.-Nr.;Herst.kurz;Bez.;H.-Art.-Nr.;Orig. Farbe;Saison;SVK-P;RVK-P"
+    zeilen = ["1;SALOMO;L1;DRIVER PRIME;black;H/W 2025;360,00;", "2;SALOMO;L1;Driver Prime;white;H/W 2026;380,00;",
+              "3;POC;P1;Obex MIPS;black;H/W 2026;210,00;149,00", "4;POC;P1;Obex MIPS;grey;H/W 2026;210,00;149,00"]
+    with tempfile.TemporaryDirectory() as d:
+        pfad = os.path.join(d, "h.csv")
+        with open(pfad, "w", encoding="cp1252") as f:
+            f.write("\n".join([kopf] + zeilen))
+        items = csv_import.lese_helme(pfad, ["Helme/Salomon Schriftzug.png", "Helme/Salomon.png", "Helme/POC.png"])
+    assert [(i["logo"], i["modell"], i["preis"], i["statt"]) for i in items] == [
+        ("Helme/Salomon.png", "Driver Prime", "380", ""), ("Helme/POC.png", "Obex MIPS", "149", "210")]
+    assert csv_import.zusammenfuehren(items, [dict(items[0])]) == 0
+
+
 def test_euro():
     assert sheet.euro("199,9") == "199,90 €"
     assert sheet.euro("5") == "5,00 €"
@@ -55,5 +70,6 @@ if __name__ == "__main__":
     test_grid()
     test_euro()
     test_logos()
+    test_csv_import()
     test_pdf()
     print("OK")
