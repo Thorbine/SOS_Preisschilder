@@ -8,6 +8,7 @@ import os
 import settings
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
+from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase.pdfmetrics import stringWidth
 
@@ -76,14 +77,24 @@ def fit_font_size(text, font, max_size, max_breite, min_size=5):
     return size
 
 
+LOGO_FUELLUNG = 0.5  # Anteil der Box-Flaeche, den ein Logo optisch einnehmen soll
+
+
 def draw_logo(c, name, x, y, w, h, anchor="ne"):
-    """Logo (Datei aus daten/logos) proportional in die Box x,y,w,h (Standard: rechtsbuendig/oben).
-    Fehlende oder defekte Datei: Schild wird ohne Logo gedruckt."""
+    """Logo (Datei aus daten/logos) in die Box x,y,w,h (Anker z. B. "ne" = rechts/oben, "w" = links/mittig).
+    Die Groesse richtet sich nach der Flaeche, nicht nur nach der Breite: ein breiter Schriftzug und ein
+    kompaktes Logo wirken so etwa gleich gross. Fehlende oder defekte Datei: Schild ohne Logo."""
     if not name:
         return
     try:
-        c.drawImage(os.path.join(settings.LOGO_DIR, name), x, y, w, h,
-                    preserveAspectRatio=True, mask="auto", anchor=anchor)
+        pfad = os.path.join(settings.LOGO_DIR, name)
+        bw, bh = ImageReader(pfad).getSize()
+        asp = bw / bh
+        lw = min(w, h * asp, (LOGO_FUELLUNG * w * h * asp) ** 0.5)
+        lh = lw / asp
+        lx = x if "w" in anchor else x + w - lw if "e" in anchor else x + (w - lw) / 2
+        ly = y + h - lh if "n" in anchor else y if "s" in anchor else y + (h - lh) / 2
+        c.drawImage(pfad, lx, ly, lw, lh, mask="auto")
     except Exception:
         pass
 
