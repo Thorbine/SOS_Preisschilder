@@ -25,13 +25,13 @@ def preis_text(text):
 
 class SkiTab(SchilderTab):
     TYP = "ski"
-    FIELDS = [("marke", "Marke"), ("kategorie", "Kategorie (z. B. Allmountain)"), ("modell", "Modell"),
+    FIELDS = [("kategorie", "Kategorie (z. B. Allmountain)"), ("modell", "Modell"),
               ("zusatz1", "Zusatz 1 (z. B. incl. Bindung)"), ("zusatz2", "Zusatz 2 (z. B. incl. Montage)"),
               ("text1", "Preis 1: Text (z. B. Setpreis bei uns)"), ("statt1", "Preis 1: alter Preis (€)"),
               ("preis1", "Preis 1 (€)"),
               ("text2", "Preis 2: Text (optional)"), ("statt2", "Preis 2: alter Preis (€)"),
               ("preis2", "Preis 2 (€, optional)")]
-    LISTE = ("marke", "modell", "preis1")
+    LISTE = ("logo", "modell", "preis1")
 
     @staticmethod
     def draw(c, w, h, it):
@@ -48,13 +48,9 @@ class SkiTab(SchilderTab):
                 c.setLineWidth(0.7)
                 c.line(mitte - b / 2, y - 1.5, mitte + b / 2, y - 1.5)
 
-        # Logo oben mittig, sonst Marke als Text
+        # Logo oben mittig (die Marke steht im Logo)
         logo_h = 0.17 * h
-        if it.get("logo"):
-            sheet.draw_logo(c, it["logo"], pad, h - pad - logo_h, breite, logo_h, anchor="n")
-        elif it.get("marke"):
-            s = sheet.fit_font_size(it["marke"], BOLD, 22, breite)
-            zentriert(it["marke"], BOLD, s, h - pad - s)
+        sheet.draw_logo(c, it.get("logo"), pad, h - pad - logo_h, breite, logo_h, anchor="n")
 
         # Inhalt: (Hoehe, Zeichenfunktion); der Platz unter dem Logo wird gleichmaessig verteilt
         bloecke = []

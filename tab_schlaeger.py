@@ -10,11 +10,11 @@ from tab_base import SchilderTab
 
 class SchlaegerTab(SchilderTab):
     TYP = "schlaeger"
-    FIELDS = [("marke", "Marke"), ("modell", "Modell (z. B. VCore Alpha L)"),
+    FIELDS = [("modell", "Modell (z. B. VCore Alpha L)"),
               ("kopf", "Kopf (z. B. 100 in² / 645 cm²)"), ("gewicht", "Gewicht (z. B. 260 g)"),
               ("besaitung", "Besaitung (z. B. 16/18)"), ("balance", "Balance (z. B. 335 mm)"),
               ("preis", "Unser Preis (€)"), ("uvp", "UVP (€, optional)")]
-    LISTE = ("marke", "modell", "preis")
+    LISTE = ("logo", "modell", "preis")
 
     @staticmethod
     def draw(c, w, h, it):
@@ -23,14 +23,9 @@ class SchlaegerTab(SchilderTab):
         BOLD, REG = "Helvetica-Bold", "Helvetica"
         grau = (0.35, 0.35, 0.35)
 
-        # Logo oben mittig, sonst Marke als Text
+        # Logo oben mittig (die Marke steht im Logo)
         logo_h = 0.18 * h
-        if it.get("logo"):
-            sheet.draw_logo(c, it["logo"], pad, h - pad - logo_h, breite, logo_h, anchor="n")
-        elif it.get("marke"):
-            s = sheet.fit_font_size(it["marke"], BOLD, 20, breite)
-            c.setFont(BOLD, s)
-            c.drawCentredString(w / 2, h - pad - s, it["marke"])
+        sheet.draw_logo(c, it.get("logo"), pad, h - pad - logo_h, breite, logo_h, anchor="n")
 
         modell = it.get("modell", "")
         c.setFont(BOLD, sheet.fit_font_size(modell, BOLD, 15, breite))
