@@ -13,6 +13,9 @@ Preisschilder für Helme und Tennisbälle erstellen und auf A4 drucken (so viele
 ## Logos
 Logos (PNG/JPG) in den Ordner `daten/logos/<Produkt>` legen, z. B. `daten/logos/Helme`. Im Programm erscheinen sie als Kacheln zum Anklicken, „Ordner öffnen“ springt direkt dorthin. Logos direkt in `daten/logos` erscheinen bei allen Produkten.
 
+## Schilder zusammenstellen
+Alle Schilder bleiben pro Reiter gespeichert. In der Spalte „Druck“ per Klick ein Häkchen setzen: Nur angehakte Schilder kommen aufs Blatt (so oft wie bei „Anzahl“). Die Reihenfolge in der Liste ist die Reihenfolge auf dem Blatt: mit ▲ ▼ verschieben oder über „Sortieren“ ordnen. Die Vorschau rechts zeigt sofort das Blatt.
+
 ## Drucken
 „Drucken (PDF)“ erzeugt ein A4-PDF und öffnet es. Dort drucken mit **100 % / „Tatsächliche Größe“** (nicht „An Seite anpassen“), sonst stimmen die Maße nicht.
 

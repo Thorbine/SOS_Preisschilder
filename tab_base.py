@@ -86,19 +86,36 @@ class SchilderTab(ttk.Frame):
         ttk.Button(kn, text="Hinzufügen", command=self.hinzufuegen).pack(side="left")
         ttk.Button(kn, text="Ändern", command=self.aendern).pack(side="left", padx=4)
         ttk.Button(kn, text="Löschen", command=self.loeschen).pack(side="left")
-        ttk.Button(kn, text="Liste leeren", command=self.leeren).pack(side="left", padx=4)
+        ttk.Button(kn, text="Alle löschen", command=self.leeren).pack(side="left", padx=4)
 
-        spalten = list(self.LISTE or [f[0] for f in self.FIELDS]) + ["anzahl"]
-        beschr = {**{f[0]: f[1] for f in self.FIELDS}, "logo": "Logo"}
+        # Zusammenstellen: Haken = kommt aufs Blatt, Reihenfolge = Reihenfolge auf dem Blatt
+        zs = ttk.Frame(p)
+        zs.pack(fill="x", pady=(0, 4))
+        ttk.Button(zs, text="Alle anhaken", command=lambda: self.alle_haken(True)).pack(side="left")
+        ttk.Button(zs, text="Keine", command=lambda: self.alle_haken(False)).pack(side="left", padx=4)
+        ttk.Button(zs, text="▲", width=3, command=lambda: self.verschieben(-1)).pack(side="left")
+        ttk.Button(zs, text="▼", width=3, command=lambda: self.verschieben(1)).pack(side="left", padx=(2, 4))
+        sort = ttk.Menubutton(zs, text="Sortieren ▾")
+        menue = tk.Menu(sort, tearoff=False)
+        for text, key in (("nach Logo / Marke", "logo"), ("nach Modell", "modell"), ("nach Preis", "preis")):
+            menue.add_command(label=text, command=lambda k=key: self.sortieren(k))
+        sort["menu"] = menue
+        sort.pack(side="left")
+
+        spalten = ["druck"] + list(self.LISTE or [f[0] for f in self.FIELDS]) + ["anzahl"]
+        beschr = {**{f[0]: f[1] for f in self.FIELDS}, "logo": "Logo", "druck": "Druck"}
         self.tree = ttk.Treeview(p, columns=spalten, show="headings", height=4, selectmode="browse")
-        for k in spalten[:-1]:
+        for k in spalten[1:-1]:
             self.tree.heading(k, text=beschr[k])
             self.tree.column(k, width=110, anchor="w")
+        self.tree.heading("druck", text="Druck")
+        self.tree.column("druck", width=50, anchor="center", stretch=False)
         self.tree.heading("anzahl", text="Anzahl")
         self.tree.column("anzahl", width=55, anchor="center")
+        self.tree.bind("<Button-1>", self._klick)
         self.tree.pack(fill="both", expand=True)
         self.tree.bind("<<TreeviewSelect>>", self.auswahl_laden)
-        self.spalten = spalten[:-1]
+        self.spalten = spalten[1:-1]
 
         unten = ttk.Frame(p)
         unten.pack(fill="x", pady=(8, 0))
@@ -207,15 +224,61 @@ class SchilderTab(ttk.Frame):
         self.logos_laden()
         self.tree.delete(*self.tree.get_children())
         for i, it in enumerate(self.items):
-            self.tree.insert("", "end", iid=str(i), values=[self._zelle(it, k) for k in self.spalten] + [it["anzahl"]])
-        gesamt = sum(it["anzahl"] for it in self.items)
+            self.tree.insert("", "end", iid=str(i),
+                             values=[self._haken(it)] + [self._zelle(it, k) for k in self.spalten] + [it["anzahl"]])
+        self._info_und_vorschau()
+
+    def _info_und_vorschau(self):
+        gesamt = sum(it["anzahl"] for it in self.items if it.get("druck", True))
         w, h, rand, abstand = self.masse()
         try:
             pb = sheet.pro_blatt(w, h, rand, abstand)
-            self.info.set(f"{w:g} × {h:g} mm · {pb} pro Blatt\n{gesamt} Schilder = {-(-gesamt // pb)} Blatt")
+            self.info.set(f"{w:g} × {h:g} mm · {pb} pro Blatt\n{gesamt} angehakte Schilder = {-(-gesamt // pb)} Blatt")
         except ValueError as e:
             self.info.set(str(e))
         self._vorschau_planen()
+
+    @staticmethod
+    def _haken(it):
+        return "☑" if it.get("druck", True) else "☐"
+
+    def _klick(self, e):
+        """Klick in die Spalte "Druck" schaltet den Haken um."""
+        if self.tree.identify_region(e.x, e.y) == "cell" and self.tree.identify_column(e.x) == "#1":
+            zeile = self.tree.identify_row(e.y)
+            if zeile:
+                it = self.items[int(zeile)]
+                it["druck"] = not it.get("druck", True)
+                self.tree.set(zeile, "druck", self._haken(it))
+                settings.save_list(self.TYP, self.items)
+                self._info_und_vorschau()
+                return "break"
+
+    def alle_haken(self, an):
+        for it in self.items:
+            it["druck"] = an
+        self._speichern()
+
+    def verschieben(self, d):
+        i = self._auswahl()
+        if i is None or not 0 <= i + d < len(self.items):
+            return
+        self.items[i], self.items[i + d] = self.items[i + d], self.items[i]
+        self._speichern()
+        self.tree.selection_set(str(i + d))
+        self.tree.see(str(i + d))
+
+    def sortieren(self, key):
+        def schluessel(it):
+            if key == "preis":
+                roh = (it.get("preis") or it.get("preis1") or "").replace("€", "").replace(".", "").replace(",", ".").strip()
+                try:
+                    return (0, float(roh), "")
+                except ValueError:
+                    return (1, 0.0, "")
+            return (0, 0.0, it.get(key, "").lower())
+        self.items.sort(key=schluessel)
+        self._speichern()
 
     @staticmethod
     def _zelle(it, k):
@@ -268,6 +331,7 @@ class SchilderTab(ttk.Frame):
     def hinzufuegen(self):
         item = self._eingabe()
         if item:
+            item["druck"] = True
             self.items.append(item)
             self._speichern()
 
@@ -278,6 +342,7 @@ class SchilderTab(ttk.Frame):
             return
         item = self._eingabe()
         if item:
+            item["druck"] = self.items[i].get("druck", True)
             self.items[i] = item
             self._speichern()
             self.tree.selection_set(str(i))
@@ -303,9 +368,9 @@ class SchilderTab(ttk.Frame):
 
     # --- Vorschau + Druck ---
     def _bogen(self):
-        """Schilder fuer den Bogen: die Liste, oder (leere Liste) das gerade eingetippte Schild."""
-        alle = [it for it in self.items for _ in range(it["anzahl"])]
-        if not alle and any(self.vars[k].get().strip() for k in self.keys):
+        """Schilder fuer den Bogen: die angehakten der Liste, oder (leere Liste) das gerade eingetippte Schild."""
+        alle = [it for it in self.items if it.get("druck", True) for _ in range(it["anzahl"])]
+        if not self.items and any(self.vars[k].get().strip() for k in self.keys):
             alle = [self._form_item()]
         return alle
 
@@ -330,7 +395,8 @@ class SchilderTab(ttk.Frame):
         alle = self._bogen()
         self.seiten_text.set("")
         if not alle:
-            self._text("Noch keine Schilder. Felder ausfüllen, dann erscheint hier die Vorschau.")
+            self._text("Keine Schilder angehakt." if self.items else
+                       "Noch keine Schilder. Felder ausfüllen, dann erscheint hier die Vorschau.")
             return
         w, h, rand, abstand = self.masse()
         try:
@@ -351,7 +417,7 @@ class SchilderTab(ttk.Frame):
     def drucken(self):
         alle = self._bogen()
         if not alle:
-            messagebox.showinfo("Drucken", "Die Liste ist leer.")
+            messagebox.showinfo("Drucken", "Keine Schilder angehakt." if self.items else "Die Liste ist leer.")
             return
         w, h, rand, abstand = self.masse()
         pfad = os.path.join(tempfile.gettempdir(), f"preisschilder_{self.TYP}.pdf")
