@@ -89,7 +89,7 @@ class SchilderTab(ttk.Frame):
         ttk.Button(kn, text="Liste leeren", command=self.leeren).pack(side="left", padx=4)
 
         spalten = list(self.LISTE or [f[0] for f in self.FIELDS]) + ["anzahl"]
-        beschr = {f[0]: f[1] for f in self.FIELDS}
+        beschr = {**{f[0]: f[1] for f in self.FIELDS}, "logo": "Logo"}
         self.tree = ttk.Treeview(p, columns=spalten, show="headings", height=4, selectmode="browse")
         for k in spalten[:-1]:
             self.tree.heading(k, text=beschr[k])
@@ -207,7 +207,7 @@ class SchilderTab(ttk.Frame):
         self.logos_laden()
         self.tree.delete(*self.tree.get_children())
         for i, it in enumerate(self.items):
-            self.tree.insert("", "end", iid=str(i), values=[it.get(k, "") for k in self.spalten] + [it["anzahl"]])
+            self.tree.insert("", "end", iid=str(i), values=[self._zelle(it, k) for k in self.spalten] + [it["anzahl"]])
         gesamt = sum(it["anzahl"] for it in self.items)
         w, h, rand, abstand = self.masse()
         try:
@@ -216,6 +216,12 @@ class SchilderTab(ttk.Frame):
         except ValueError as e:
             self.info.set(str(e))
         self._vorschau_planen()
+
+    @staticmethod
+    def _zelle(it, k):
+        """Listenzelle; beim Logo nur der Name ohne Ordner und Endung."""
+        v = it.get(k, "")
+        return os.path.splitext(os.path.basename(v))[0] if k == "logo" else v
 
     def _form_item(self, anzahl=1):
         item = {k: self.vars[k].get().strip() for k in self.keys}
