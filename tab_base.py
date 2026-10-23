@@ -52,13 +52,13 @@ class SchilderTab(ttk.Frame):
         self._job = None
         self._bild = None
 
-        self.columnconfigure(1, weight=1)
+        self.columnconfigure(0, weight=1)  # links waechst, die Vorschau hat feste Groesse
         self.rowconfigure(0, weight=1)
         links = ttk.Frame(self)
-        links.grid(row=0, column=0, sticky="ns", padx=(0, 10))
+        links.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
         self._links(links)
         rechts = ttk.LabelFrame(self, text="Vorschau Druckbogen", padding=6)
-        rechts.grid(row=0, column=1, sticky="nsew")
+        rechts.grid(row=0, column=1, sticky="n")
         self._rechts(rechts)
 
         for v in self.vars.values():
@@ -70,13 +70,14 @@ class SchilderTab(ttk.Frame):
     def _links(self, p):
         form = ttk.LabelFrame(p, text="Schild", padding=8)
         form.pack(fill="x")
+        form.columnconfigure(1, weight=1)
         for i, f in enumerate(self.FIELDS):
             ttk.Label(form, text=f[1]).grid(row=i, column=0, sticky="w", pady=2, padx=(0, 8))
             if len(f) > 2:
                 w = ttk.Combobox(form, textvariable=self.vars[f[0]], values=f[2], width=22)
             else:
                 w = ttk.Entry(form, textvariable=self.vars[f[0]], width=24)
-            w.grid(row=i, column=1, sticky="w", pady=2)
+            w.grid(row=i, column=1, sticky="ew", pady=2)
         n = len(self.FIELDS)
         ttk.Label(form, text="Anzahl").grid(row=n, column=0, sticky="w", pady=2)
         ttk.Spinbox(form, from_=1, to=500, textvariable=self.anzahl, width=6).grid(row=n, column=1, sticky="w", pady=2)
@@ -123,7 +124,7 @@ class SchilderTab(ttk.Frame):
 
         unten = ttk.Frame(p)
         unten.pack(fill="x", pady=(8, 0))
-        ttk.Label(unten, textvariable=self.info, wraplength=360, justify="left").pack(side="left")
+        ttk.Label(unten, textvariable=self.info, wraplength=520, justify="left").pack(side="left")
         ttk.Button(unten, text="Drucken (PDF)", command=self.drucken).pack(side="right")
 
     def _extra(self, p):
@@ -162,6 +163,7 @@ class SchilderTab(ttk.Frame):
         self.logo_innen = tk.Frame(self.logo_canvas, background="white")
         self.logo_canvas.create_window((0, 0), window=self.logo_innen, anchor="nw")
         self.logo_innen.bind("<Configure>", lambda e: self.logo_canvas.configure(scrollregion=self.logo_canvas.bbox("all")))
+        self.logo_canvas.bind("<Configure>", lambda e: self._logo_anordnen())
         self.logo_canvas.bind("<Enter>", lambda e: self.logo_canvas.bind_all("<MouseWheel>", self._logo_rad))
         self.logo_canvas.bind("<Leave>", lambda e: self.logo_canvas.unbind_all("<MouseWheel>"))
         self._kacheln = {}
@@ -198,7 +200,6 @@ class SchilderTab(ttk.Frame):
         for w in self.logo_innen.winfo_children():
             w.destroy()
         self._kacheln = {}
-        spalten = 4
         for i, name in enumerate([""] + [n for n, _ in stand]):
             try:
                 if name:
@@ -208,10 +209,16 @@ class SchilderTab(ttk.Frame):
                                       width=11, height=3, bd=2, relief="flat")
             except Exception:
                 continue  # defekte Bilddatei ueberspringen
-            kachel.grid(row=i // spalten, column=i % spalten, padx=2, pady=2)
             kachel.bind("<Button-1>", lambda e, n=name: self.vars["logo"].set(n))
             self._kacheln[name] = kachel
+        self._logo_anordnen()
         self._logo_markieren()
+
+    def _logo_anordnen(self):
+        """Kacheln so viele pro Zeile, wie in die aktuelle Breite passen."""
+        spalten = max(4, self.logo_canvas.winfo_width() // 104)
+        for i, kachel in enumerate(self._kacheln.values()):
+            kachel.grid(row=i // spalten, column=i % spalten, padx=2, pady=2)
 
     def _logo_markieren(self):
         aktuell = self.vars["logo"].get()
@@ -230,8 +237,8 @@ class SchilderTab(ttk.Frame):
         self.seiten_text = tk.StringVar()
         ttk.Label(nav, textvariable=self.seiten_text).pack(side="left", padx=8)
         ttk.Button(nav, text="▶", width=3, command=lambda: self.blaettern(1)).pack(side="left")
-        self.canvas = tk.Canvas(p, background="#9a9a9a", highlightthickness=0, width=420, height=560)
-        self.canvas.pack(fill="both", expand=True)
+        self.canvas = tk.Canvas(p, background="#9a9a9a", highlightthickness=0, width=270, height=382)
+        self.canvas.pack()
         self.canvas.bind("<Configure>", lambda e: self._vorschau_planen())
 
     # --- Daten ---
