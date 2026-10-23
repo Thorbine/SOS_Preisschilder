@@ -1,3 +1,4 @@
 reportlab
 pymupdf
 certifi
+pillow

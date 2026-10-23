@@ -12,6 +12,8 @@ import tempfile
 import tkinter as tk
 from tkinter import filedialog, ttk, messagebox
 
+from PIL import Image, ImageTk
+
 import settings
 import sheet
 
@@ -75,15 +77,9 @@ class SchilderTab(ttk.Frame):
                 w = ttk.Entry(form, textvariable=self.vars[f[0]], width=24)
             w.grid(row=i, column=1, sticky="w", pady=2)
         n = len(self.FIELDS)
-        ttk.Label(form, text="Logo").grid(row=n, column=0, sticky="w", pady=2)
-        lf = ttk.Frame(form)
-        lf.grid(row=n, column=1, sticky="w", pady=2)
-        self.logo_box = ttk.Combobox(lf, textvariable=self.vars["logo"], values=[""] + settings.logos(),
-                                     width=16, state="readonly")
-        self.logo_box.pack(side="left")
-        ttk.Button(lf, text="Datei wählen…", command=self.logo_waehlen).pack(side="left", padx=4)
-        ttk.Label(form, text="Anzahl").grid(row=n + 1, column=0, sticky="w", pady=2)
-        ttk.Spinbox(form, from_=1, to=500, textvariable=self.anzahl, width=6).grid(row=n + 1, column=1, sticky="w", pady=2)
+        ttk.Label(form, text="Anzahl").grid(row=n, column=0, sticky="w", pady=2)
+        ttk.Spinbox(form, from_=1, to=500, textvariable=self.anzahl, width=6).grid(row=n, column=1, sticky="w", pady=2)
+        self._logo_auswahl(p)
 
         kn = ttk.Frame(p)
         kn.pack(fill="x", pady=8)
@@ -94,7 +90,7 @@ class SchilderTab(ttk.Frame):
 
         spalten = list(self.LISTE or [f[0] for f in self.FIELDS]) + ["anzahl"]
         beschr = {f[0]: f[1] for f in self.FIELDS}
-        self.tree = ttk.Treeview(p, columns=spalten, show="headings", height=12, selectmode="browse")
+        self.tree = ttk.Treeview(p, columns=spalten, show="headings", height=4, selectmode="browse")
         for k in spalten[:-1]:
             self.tree.heading(k, text=beschr[k])
             self.tree.column(k, width=110, anchor="w")
@@ -108,6 +104,88 @@ class SchilderTab(ttk.Frame):
         unten.pack(fill="x", pady=(8, 0))
         ttk.Label(unten, textvariable=self.info, wraplength=360, justify="left").pack(side="left")
         ttk.Button(unten, text="Drucken (PDF)", command=self.drucken).pack(side="right")
+
+    # --- Logo-Auswahl: Kacheln statt Dateidialog ---
+    def _logo_auswahl(self, p):
+        box = ttk.LabelFrame(p, text=f"Logo  (Ordner: daten/logos/{settings.TYPEN[self.TYP][0]})", padding=6)
+        box.pack(fill="x", pady=(8, 0))
+        kopf = ttk.Frame(box)
+        kopf.pack(fill="x", pady=(0, 4))
+        ttk.Button(kopf, text="Ordner öffnen", command=self.logo_ordner_oeffnen).pack(side="left")
+        ttk.Button(kopf, text="Logo hinzufügen…", command=self.logo_waehlen).pack(side="left", padx=4)
+        ttk.Button(kopf, text="Neu laden", command=self.logos_laden).pack(side="left")
+        self.logo_text = tk.StringVar()
+        ttk.Label(kopf, textvariable=self.logo_text, foreground="gray").pack(side="right")
+        raum = ttk.Frame(box)
+        raum.pack(fill="x")
+        self.logo_canvas = tk.Canvas(raum, height=104, highlightthickness=0, background="white")
+        sb = ttk.Scrollbar(raum, orient="vertical", command=self.logo_canvas.yview)
+        self.logo_canvas.configure(yscrollcommand=sb.set)
+        self.logo_canvas.pack(side="left", fill="x", expand=True)
+        sb.pack(side="right", fill="y")
+        self.logo_innen = tk.Frame(self.logo_canvas, background="white")
+        self.logo_canvas.create_window((0, 0), window=self.logo_innen, anchor="nw")
+        self.logo_innen.bind("<Configure>", lambda e: self.logo_canvas.configure(scrollregion=self.logo_canvas.bbox("all")))
+        self.logo_canvas.bind("<Enter>", lambda e: self.logo_canvas.bind_all("<MouseWheel>", self._logo_rad))
+        self.logo_canvas.bind("<Leave>", lambda e: self.logo_canvas.unbind_all("<MouseWheel>"))
+        self._kacheln = {}
+        self._thumbs = {}  # (name, mtime) -> PhotoImage
+        self._logo_stand = None
+        self.vars["logo"].trace_add("write", lambda *_: self._logo_markieren())
+
+    def _logo_rad(self, e):
+        self.logo_canvas.yview_scroll(-1 if e.delta > 0 else 1, "units")
+
+    def _thumb(self, name):
+        pfad = os.path.join(settings.LOGO_DIR, name)
+        key = (name, os.path.getmtime(pfad))
+        if key not in self._thumbs:
+            im = Image.open(pfad).convert("RGBA")
+            im.thumbnail((92, 44))
+            bg = Image.new("RGBA", im.size, "white")
+            bg.alpha_composite(im)
+            self._thumbs[key] = ImageTk.PhotoImage(bg.convert("RGB"))
+        return self._thumbs[key]
+
+    def logos_laden(self, _=None):
+        """Kacheln neu aufbauen - nur wenn sich die Dateien geaendert haben."""
+        namen = settings.logos(self.TYP)
+        stand = []
+        for n in namen:
+            try:
+                stand.append((n, os.path.getmtime(os.path.join(settings.LOGO_DIR, n))))
+            except OSError:
+                pass
+        if stand == self._logo_stand:
+            return
+        self._logo_stand = stand
+        for w in self.logo_innen.winfo_children():
+            w.destroy()
+        self._kacheln = {}
+        spalten = 4
+        for i, name in enumerate([""] + [n for n, _ in stand]):
+            try:
+                if name:
+                    kachel = tk.Label(self.logo_innen, image=self._thumb(name), background="white", bd=2, relief="flat")
+                else:
+                    kachel = tk.Label(self.logo_innen, text="kein Logo", foreground="gray", background="white",
+                                      width=11, height=3, bd=2, relief="flat")
+            except Exception:
+                continue  # defekte Bilddatei ueberspringen
+            kachel.grid(row=i // spalten, column=i % spalten, padx=2, pady=2)
+            kachel.bind("<Button-1>", lambda e, n=name: self.vars["logo"].set(n))
+            self._kacheln[name] = kachel
+        self._logo_markieren()
+
+    def _logo_markieren(self):
+        aktuell = self.vars["logo"].get()
+        for name, k in self._kacheln.items():
+            k.configure(relief="solid" if name == aktuell else "flat", background="#cfe3ff" if name == aktuell else "white")
+        self.logo_text.set(aktuell or "kein Logo")
+
+    def logo_ordner_oeffnen(self):
+        settings.logo_ordner_anlegen()
+        pdf_oeffnen(settings.logo_ordner(self.TYP))
 
     def _rechts(self, p):
         nav = ttk.Frame(p)
@@ -126,7 +204,7 @@ class SchilderTab(ttk.Frame):
         return s[self.TYP]["breite"], s[self.TYP]["hoehe"], s["rand"], s["abstand"]
 
     def aktualisieren(self):
-        self.logo_box["values"] = [""] + settings.logos()
+        self.logos_laden()
         self.tree.delete(*self.tree.get_children())
         for i, it in enumerate(self.items):
             self.tree.insert("", "end", iid=str(i), values=[it.get(k, "") for k in self.spalten] + [it["anzahl"]])
@@ -170,15 +248,16 @@ class SchilderTab(ttk.Frame):
         pfad = filedialog.askopenfilename(title="Logo wählen", filetypes=[("Bilder", "*.png *.jpg *.jpeg")])
         if not pfad:
             return
-        os.makedirs(settings.LOGO_DIR, exist_ok=True)
+        settings.logo_ordner_anlegen()
+        ordner = settings.TYPEN[self.TYP][0]
         name = os.path.basename(pfad)
         try:
-            shutil.copyfile(pfad, os.path.join(settings.LOGO_DIR, name))  # Kopie: Original darf verschoben werden
+            shutil.copyfile(pfad, os.path.join(settings.logo_ordner(self.TYP), name))  # Kopie: Original darf verschoben werden
         except (OSError, shutil.SameFileError) as e:
             messagebox.showerror("Logo", f"Logo konnte nicht gespeichert werden:\n{e}")
             return
-        self.logo_box["values"] = [""] + settings.logos()
-        self.vars["logo"].set(name)
+        self.logos_laden()
+        self.vars["logo"].set(ordner + "/" + name)
 
     def hinzufuegen(self):
         item = self._eingabe()

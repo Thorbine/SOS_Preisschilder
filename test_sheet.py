@@ -21,6 +21,21 @@ def test_grid():
         raise AssertionError("zu grosses Schild muss abgelehnt werden")
 
 
+def test_logos():
+    import settings
+    with tempfile.TemporaryDirectory() as d:
+        alt = settings.LOGO_DIR
+        settings.LOGO_DIR = d
+        try:
+            os.makedirs(os.path.join(d, "Helme"))
+            for pfad in ("Helme/a.png", "Helme/b.txt", "gemeinsam.jpg"):
+                open(os.path.join(d, pfad), "wb").close()
+            assert settings.logos("helme") == ["Helme/a.png", "gemeinsam.jpg"]
+            assert settings.logos("ski") == ["gemeinsam.jpg"]
+        finally:
+            settings.LOGO_DIR = alt
+
+
 def test_euro():
     assert sheet.euro("199,9") == "199,90 €"
     assert sheet.euro("5") == "5,00 €"
@@ -39,5 +54,6 @@ def test_pdf():
 if __name__ == "__main__":
     test_grid()
     test_euro()
+    test_logos()
     test_pdf()
     print("OK")

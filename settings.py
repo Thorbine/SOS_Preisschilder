@@ -19,14 +19,38 @@ DEFAULTS = {"rand": 10, "abstand": 0, **{k: {"breite": b, "hoehe": h} for k, (_,
 
 
 LOGO_DIR = os.path.join(DATEN_DIR, "logos")
+LOGO_ENDUNGEN = (".png", ".jpg", ".jpeg")
 
 
-def logos():
-    """Dateinamen der gespeicherten Logos (sortiert)."""
+def logo_ordner(typ):
+    """Unterordner fuer die Logos eines Produkts, z. B. daten/logos/Helme."""
+    return os.path.join(LOGO_DIR, TYPEN[typ][0])
+
+
+def logo_ordner_anlegen():
+    """Legt daten/logos und je einen Unterordner pro Produkt an (damit man sie im Finder findet)."""
     try:
-        return sorted(f for f in os.listdir(LOGO_DIR) if f.lower().endswith((".png", ".jpg", ".jpeg")))
+        for typ in TYPEN:
+            os.makedirs(logo_ordner(typ), exist_ok=True)
+    except OSError:
+        pass
+
+
+def _bilder(ordner, praefix=""):
+    try:
+        return sorted(praefix + f for f in os.listdir(ordner) if f.lower().endswith(LOGO_ENDUNGEN))
     except OSError:
         return []
+
+
+def logos(typ=None):
+    """Logos als Pfade relativ zu daten/logos. Mit typ: erst die Logos des Produkts ("Helme/x.png"),
+    dann die gemeinsamen direkt in daten/logos ("x.png"), die bei allen Produkten erscheinen."""
+    gemeinsam = _bilder(LOGO_DIR)
+    if typ is None:
+        return gemeinsam
+    ordner = TYPEN[typ][0]
+    return _bilder(logo_ordner(typ), ordner + "/") + gemeinsam
 
 
 def _pfad(name):

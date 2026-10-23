@@ -26,6 +26,7 @@ class App(tk.Tk):
         self.geometry(f"{min(1280, self.winfo_screenwidth() - 40)}x{min(820, self.winfo_screenheight() - 80)}")
         self.minsize(1000, 640)
         self.report_callback_exception = self._on_error
+        settings.logo_ordner_anlegen()
         nb = ttk.Notebook(self)
         nb.pack(fill="both", expand=True, padx=8, pady=8)
         nb.add(HelmeTab(nb), text="Helme")
