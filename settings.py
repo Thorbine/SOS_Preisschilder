@@ -9,7 +9,7 @@ DATEN_DIR = os.path.join(APP_DIR, "daten")
 
 # Typ -> (Anzeigename, Breite mm, Hoehe mm). Neuer Schildtyp = neuer Eintrag + Tab.
 TYPEN = {
-    "helme": ("Helme", 100, 60),
+    "helme": ("Helme", 124, 60),
     "baelle": ("Tennisbälle", 100, 15),
     "schlaeger": ("Schläger", 90, 68),
     "ski": ("Ski", 70, 90),
