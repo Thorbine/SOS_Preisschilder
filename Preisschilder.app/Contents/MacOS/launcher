@@ -15,5 +15,11 @@ if ! "$PY" -c "import tkinter, reportlab, PIL, certifi, pymupdf" 2>/dev/null; th
     || fehler "Die Pakete konnten nicht installiert werden (Internetverbindung?). Details: /tmp/preisschilder_pip.log"
 fi
 
-mkdir -p daten
-"$PY" main.py 2>>daten/start_fehler.txt || fehler "Das Programm ist abgestürzt. Details: daten/start_fehler.txt im Programmordner."
+ERR="$(mktemp)"
+"$PY" main.py 2>"$ERR"
+if [ $? -ne 0 ]; then
+  mkdir -p daten && cp "$ERR" daten/start_fehler.txt   # nur im Fehlerfall anlegen
+  rm -f "$ERR"
+  fehler "Das Programm ist abgestürzt. Details: daten/start_fehler.txt im Programmordner."
+fi
+rm -f "$ERR"
