@@ -3,12 +3,13 @@
 Preisschilder für Helme und Tennisbälle erstellen und auf A4 drucken (so viele Schilder wie möglich pro Blatt, der Rahmen ist die Schnittlinie).
 
 ## Mac: einmalig einrichten
+(Ohne Terminalfenster: Python installieren, dann `Preisschilder.app` im Programmordner doppelklicken, beim ersten Mal Rechtsklick → Öffnen und den Zugriff auf den Ordner erlauben. Die App lässt sich ins Dock ziehen.)
 1. Python von https://www.python.org/downloads/ installieren (bringt Tkinter mit).
 2. Auf GitHub **Code → Download ZIP**, entpacken.
 3. Im Ordner `start.command` einmal im Terminal ausführbar machen: `chmod +x start.command`, danach Doppelklick (beim ersten Mal Rechtsklick → Öffnen).
 
 ## Windows
-`start.bat` doppelklicken (Python muss installiert sein).
+`start.bat` doppelklicken (Python muss installiert sein). Das Programm startet ohne Konsolenfenster.
 
 ## Logos
 Logos (PNG/JPG) in den Ordner `daten/logos/<Produkt>` legen, z. B. `daten/logos/Helme`. Im Programm erscheinen sie als Kacheln zum Anklicken, „Ordner öffnen“ springt direkt dorthin. Logos direkt in `daten/logos` erscheinen bei allen Produkten.

@@ -1,0 +1,19 @@
+#!/bin/bash
+# Startet das Preisschilder-Programm ohne Terminalfenster (Doppelklick auf Preisschilder.app).
+# Das Programm selbst liegt drei Ordner hoeher (neben main.py) und wird per Update erneuert.
+DIR="$(cd "$(dirname "$0")/../../.." && pwd)"
+cd "$DIR" || exit 1
+# Aus dem Finder gestartete Apps haben nur einen kleinen PATH: gaengige Python-Orte ergaenzen
+export PATH="/Library/Frameworks/Python.framework/Versions/Current/bin:/usr/local/bin:/opt/homebrew/bin:$PATH"
+PY="$(command -v python3)"
+fehler() { osascript -e "display dialog \"$1\" buttons {\"OK\"} default button 1 with icon stop with title \"SOS Preisschilder\"" >/dev/null; exit 1; }
+[ -z "$PY" ] && fehler "Python wurde nicht gefunden. Bitte von python.org installieren."
+
+# Fehlende Pakete einmalig nachinstallieren
+if ! "$PY" -c "import tkinter, reportlab, PIL, certifi, pymupdf" 2>/dev/null; then
+  "$PY" -m pip install -q --prefer-binary -r requirements.txt 2>/tmp/preisschilder_pip.log \
+    || fehler "Die Pakete konnten nicht installiert werden (Internetverbindung?). Details: /tmp/preisschilder_pip.log"
+fi
+
+mkdir -p daten
+"$PY" main.py 2>>daten/start_fehler.txt || fehler "Das Programm ist abgestürzt. Details: daten/start_fehler.txt im Programmordner."
