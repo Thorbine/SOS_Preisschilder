@@ -15,6 +15,27 @@ from tab_base import SchilderTab
 GROESSEN = ["XS-S", "S-M", "M-L", "L-XL", "XL-XXL"]  # Vorschlaege, beliebiger Text bleibt moeglich
 
 
+def anlegen_groessen(items, groessen):
+    """Je Modell (gleiches Logo + gleicher Name) ein Schild pro Groesse; die Schilder eines Modells stehen
+    zusammen, nach Groesse sortiert. Ein Schild ohne Groesse bekommt die erste fehlende. Neue Schilder
+    uebernehmen Logo, Modell und Preis, die Maße bleiben leer. -> Anzahl neu angelegter Schilder."""
+    def schluessel(it):
+        return it.get("logo", ""), "".join(it.get("modell", "").split()).lower()
+    gruppen = {}
+    for it in items:
+        gruppen.setdefault(schluessel(it), []).append(it)
+    ergebnis, neu = [], 0
+    for gruppe in gruppen.values():
+        fehlt = [g for g in groessen if g not in {it.get("groesse1") for it in gruppe}]
+        gruppe = [it if it.get("groesse1") or not fehlt else {**it, "groesse1": fehlt.pop(0)} for it in gruppe]
+        kopien = [{**gruppe[0], "groesse1": g, "mass1": "", "_blatt": 0} for g in fehlt]
+        neu += len(kopien)
+        reihenfolge = {g: n for n, g in enumerate(groessen)}
+        ergebnis += sorted(gruppe + kopien, key=lambda it: reihenfolge.get(it.get("groesse1"), len(groessen)))
+    items[:] = ergebnis
+    return neu
+
+
 class HelmeTab(SchilderTab):
     TYP = "helme"
     FIELDS = [("modell", "Modell"),
@@ -24,7 +45,19 @@ class HelmeTab(SchilderTab):
     KOPIE_LEER = ("groesse1", "mass1")  # Kopie = gleicher Helm in anderer Groesse
 
     def _extra(self, p):
-        ttk.Button(p, text="Helme aus CSV importieren…", command=self.csv_importieren).pack(anchor="w", pady=(0, 4))
+        zeile = ttk.Frame(p)
+        zeile.pack(fill="x", pady=(0, 4))
+        ttk.Button(zeile, text="Helme aus CSV importieren…", command=self.csv_importieren).pack(side="left")
+        ttk.Button(zeile, text="Alle Größen anlegen", command=self.groessen_anlegen).pack(side="left", padx=4)
+
+    def groessen_anlegen(self):
+        """Legt zu jedem Modell fehlende Groessen an (Maße bleiben leer). Vorhandene bleiben unveraendert."""
+        neu = anlegen_groessen(self.items, GROESSEN)
+        for it in self.items:
+            it.setdefault("_blatt", 0)
+        self._speichern()
+        messagebox.showinfo("Größen", f"{neu} Schilder angelegt. Jetzt nur noch die Maße ergänzen." if neu
+                            else "Alle Modelle haben schon alle Größen.")
 
     def csv_importieren(self):
         """Liest die Helm-CSV: je Hersteller und Modell ein Schild (ohne Haken), schon vorhandene bleiben unberuehrt."""

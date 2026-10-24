@@ -51,6 +51,20 @@ def test_csv_import():
     assert csv_import.zusammenfuehren(items, [dict(items[0])]) == 0
 
 
+def test_groessen_anlegen():
+    from tab_helme import anlegen_groessen
+    g = ["XS-S", "S-M", "M-L"]
+    items = [dict(logo="a", modell="Gems", preis="1"), dict(logo="a", modell="Alto", groesse1="M-L", mass1="55"),
+             dict(logo="b", modell="Gems", preis="3")]
+    assert anlegen_groessen(items, g) == 6
+    assert [(i["logo"], i["modell"], i["groesse1"]) for i in items] == [
+        ("a", "Gems", "XS-S"), ("a", "Gems", "S-M"), ("a", "Gems", "M-L"),
+        ("a", "Alto", "XS-S"), ("a", "Alto", "S-M"), ("a", "Alto", "M-L"),
+        ("b", "Gems", "XS-S"), ("b", "Gems", "S-M"), ("b", "Gems", "M-L")]
+    assert [i for i in items if i["modell"] == "Alto" and i["groesse1"] == "M-L"][0]["mass1"] == "55"
+    assert anlegen_groessen(items, g) == 0
+
+
 def test_euro():
     assert sheet.euro("199,9") == "199,90 €"
     assert sheet.euro("5") == "5,00 €"
@@ -71,5 +85,6 @@ if __name__ == "__main__":
     test_euro()
     test_logos()
     test_csv_import()
+    test_groessen_anlegen()
     test_pdf()
     print("OK")

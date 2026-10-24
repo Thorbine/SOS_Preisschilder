@@ -76,6 +76,7 @@ class SchilderTab(ttk.Frame):
             ttk.Label(form, text=f[1]).grid(row=i, column=0, sticky="w", pady=2, padx=(0, 8))
             if len(f) > 2:
                 w = ttk.Combobox(form, textvariable=self.vars[f[0]], values=f[2], width=22)
+                w.bind("<Button-1>", self._liste_oeffnen)  # Klick ins Feld oeffnet die Auswahl, nicht nur der Pfeil
             else:
                 w = ttk.Entry(form, textvariable=self.vars[f[0]], width=24)
             w.grid(row=i, column=1, sticky="ew", pady=2)
@@ -124,6 +125,12 @@ class SchilderTab(ttk.Frame):
         unten.pack(fill="x", pady=(8, 0))
         ttk.Label(unten, textvariable=self.info, wraplength=520, justify="left").pack(side="left")
         ttk.Button(unten, text="Drucken (PDF)", command=self.drucken).pack(side="right")
+
+    @staticmethod
+    def _liste_oeffnen(e):
+        w = e.widget
+        if "downarrow" not in w.identify(e.x, e.y):  # der Pfeil selbst oeffnet schon von allein
+            w.after(10, lambda: w.tk.call("ttk::combobox::Post", w))
 
     def _extra(self, p):
         """Platz fuer zusaetzliche Knoepfe eines Reiters (z. B. CSV-Import bei den Helmen)."""
